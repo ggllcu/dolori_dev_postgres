@@ -3,7 +3,7 @@
 theme: default
 # random image from a curated Unsplash collection by Anthony
 # like them? see https://unsplash.com/collections/94734566/slidev
-# background: ./img/bug.png
+# background: /img/bug.png
 # some information about your slides (markdown enabled)
 title: I dolori di un giovane dev (vs PostgreSQL)
 info: |
@@ -31,7 +31,7 @@ Luca Guglielmi
 
 ---
 layout: image
-image: ./img/bug.png
+image: /img/bug.png
 backgroundSize: contain
 ---
 
@@ -107,7 +107,7 @@ SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 1000;
 
 ---
 layout: image
-image: ./img/select_with_limit.svg
+image: /img/select_with_limit.svg
 backgroundSize: contain
 ---
 
@@ -169,7 +169,7 @@ SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 10000;
 
 ---
 layout: image
-image: ./img/select_with_limit_half_data.svg
+image: /img/select_with_limit_half_data.svg
 backgroundSize: contain
 ---
 
@@ -297,7 +297,7 @@ SELECT cdr.populate_tenant_id(100);
 
 ---
 layout: image
-image: ./img/populate_tenant_id.svg
+image: /img/populate_tenant_id.svg
 backgroundSize: contain
 ---
 
@@ -654,7 +654,7 @@ SELECT cdr.populate_tenant_id(10000);
 
 ---
 layout: image
-image: ./img/populate_tenant_id_double_condition.svg
+image: /img/populate_tenant_id_double_condition.svg
 backgroundSize: contain
 ---
 
@@ -885,7 +885,7 @@ Update on timeseries t  (cost=9.66..390264.94 rows=19200 width=356) (actual time
 
 ---
 layout: image
-image: ./img/total_cost.svg
+image: /img/total_cost.svg
 backgroundSize: contain
 ---
 
@@ -1091,7 +1091,7 @@ Il tempo e' piu' o meno lo stesso. Facciamo un po' tutti i casi con la funzione 
 
 ---
 layout: image
-image: ./img/jit_vs_no_jit.svg
+image: /img/jit_vs_no_jit.svg
 backgroundSize: contain
 ---
 
