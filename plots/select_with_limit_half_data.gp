@@ -1,5 +1,5 @@
 set terminal svg enhanced font "Helvetica,14"
-set output '../img/select_with_limit_half_data.svg'
+set output '../public/img/select_with_limit_half_data.svg'
 
 set logscale x
 set grid lw 1 linetype 1 lc rgb "gray"

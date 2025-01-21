@@ -1,5 +1,5 @@
 set terminal svg enhanced font "Helvetica,14"
-set output '../img/jit_vs_no_jit.svg'
+set output '../public/img/jit_vs_no_jit.svg'
 
 unset logscale
 set logscale x

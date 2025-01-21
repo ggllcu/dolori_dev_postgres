@@ -1,5 +1,5 @@
 set terminal svg enhanced font "Helvetica,14"
-set output '../img/populate_tenant_id_double_condition.svg'
+set output '../public/img/populate_tenant_id_double_condition.svg'
 
 unset logscale
 set logscale x

@@ -1,5 +1,5 @@
 set terminal svg enhanced font "Helvetica,14"
-set output '../img/total_cost.svg'
+set output '../public/img/total_cost.svg'
 
 set logscale x
 set logscale y
