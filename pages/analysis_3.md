@@ -1,32 +1,9 @@
-### Operazione
 
-<br>
+### Analisi della funzione completa
 
-#### Tabella principale main_table
+Ho finito le idee. Torniamo a guardare la funzione:
 
-|    |     |     |     |
-|--- | --- | --- | --- |
-| id | unique_identifier | ... | missing_field |
-| uuid() | 123456789 | ... | null |
-
-<br>
-
-<v-click>
-
-#### Tabella ausiliaria helper_table
-
-|    |     |
-|--- | --- |
-|unique_identifier | missing_field |
-| 123456789 | abc |
-
-</v-click>
-
----
-
-#### Stored procedure
-
-```sql{all|2-7|10-15|8-9,16-17}
+```sql
 WITH c AS
   (SELECT id,
           imsi,

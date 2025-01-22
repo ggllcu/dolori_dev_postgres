@@ -20,6 +20,7 @@ transition: slide-left
 mdc: true
 showLanguage: true
 lineNumbers: true
+# hideInToc: true
 ---
 
 # I dolori di un giovane dev (vs PostgreSQL)
@@ -36,14 +37,14 @@ backgroundSize: contain
 ---
 
 ---
-
-<Toc text-sm minDepth="1" maxDepth="3" />
-
----
 layout: section
 ---
 
-## La situazione
+# La situazione
+
+---
+src: ./pages/premesse.md
+---
 
 ---
 src: ./pages/situation.md
@@ -61,611 +62,74 @@ src: ./pages/process.md
 layout: section
 ---
 
-## Prima analisi: preliminari
+# Primo step: operazioni preliminari
+
+---
+src: ./pages/analysis_1.md
+---
+
+---
+src: ./pages/solution_1.md
+---
+
+---
+layout: section
+---
+
+# Secondo step: operazione principale
+
+---
+src: ./pages/analysis_2.md
+---
+
+---
+src: ./pages/solution_2_1.md
+---
+
+---
+src: ./pages/solution_2_2.md
+---
+
+---
+src: ./pages/solution_2_3.md
+---
+
+---
+src: ./pages/til_1.md
+---
+
+---
+src: ./pages/til_2.md
+---
+
+---
+layout: section
+---
+
+# Terzo step
+
+---
+src: ./pages/analysis_3.md
+---
+
+---
+src: ./pages/solution_3.md
+---
 
 ---
 
-A regime, non abbiamo nessun record mancante:
+# Quarto step: 
 
-```sql
-\timing 
-```
+## Uso di `explain analyze`
 
-<br>
+YOU DON'T SAY!!!
 
 <v-click>
 
-```sql
-select count(*) from main_table where missing_fiels is null;
-
--- tenant_id 
------------
--- (0 rows)
-
--- Time: 503.225 ms
-```
-
-</v-click>
-
----
-
-In maniera abbastanza intuibile, a regime la `sql select` non dipende dal parametro `max_rows`.
-
-```sql    
-SELECT count(*) FROM cdr.timeseries WHERE tenant_id IS NULL LIMIT 10;
--- Time: 8400.916 ms (00:08.401) // Prima volta
-
-SELECT count(*) FROM cdr.timeseries WHERE tenant_id IS NULL LIMIT 10;
--- Time: 1371.396 ms (00:01.371) // Seconda volta
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 100;
--- Time: 1448.198 ms (00:01.448)
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 1000;
--- Time: 1357.622 ms (00:01.358)
-```
-
----
-layout: image
-image: /img/select_with_limit.svg
-backgroundSize: contain
----
-
----
-
-Tuttavia, la `populate_missing_field` e' davvero troppo lenta per ogni possibile test. 
-
-<v-click>
-
-```sql
-SELECT cdr.populate_tenant_id(10);
--- Time: 2165909.072 ms (36:05.909)
-```
-
-</v-click>
-<v-click>
-
-Dimezzo i dati. Ho deciso di tenere comunque i dati di prima per valutare come scalano in base al numero di dati le funzioni precedenti.
-
-</v-click>
-<v-click>
-
-```sql
-DELETE FROM cdr.timeseries WHERE datetime < '2024-08-15 00:00:00';
-```
-
-```sql
-SELECT COUNT(*) FROM cdr.timeseries;
--- 43987988
--- Time: 92053.222 ms (01:32.053)
-```
-
-</v-click>
-
----
-
-Ricontrollo la `sql select`:
-
-<v-click>
-
-```sql    
-SELECT count(*) FROM cdr.timeseries WHERE tenant_id IS NULL LIMIT 10;
--- Time: 7970.138 ms (00:07.970) // Prima volta
-
-SELECT count(*) FROM cdr.timeseries WHERE tenant_id IS NULL LIMIT 10;
--- Time: 1419.836 ms (00:01.420) // Seconda volta
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 100;
--- Time: 1399.470 ms (00:01.399)
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 1000;
--- Time: 2259.829 ms (00:02.260)
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 10000;
--- Time: 1393.022 ms (00:01.393)
-```
-
-</v-click>
-
----
-layout: image
-image: /img/select_with_limit_half_data.svg
-backgroundSize: contain
----
-
----
-
-Gia' qui le cose non mi tornano tantissimo: mi sarei aspettato dei tempi piu' bassi. 
-
-Evidentemente la maggior parte del tempo di esecuzione e' dovuto allo start up del processo e non alla ricerca vera e propria. 
-
-Ad ogni modo, resta costante rispetto al parametro `max_rows`.
-
----
-
-Torniamo alla funzione `populate_missing_field`.
-
-<v-click>
-
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: dai 3 ai 5 minuti, dipende dai test 
-```
-
-</v-click>
-<v-click>
-
-Impossibile lavorare con questi valori, occorre fare qualcosa.
-
-</v-click>
-
----
-
-### Soluzione 1: ottimizzazione e indici
-
-Cominciamo con le basi e poi torniamo all'analisi. Facciamo manutenzione, creiamo tutti gli indici necessari e stimiamone i costi. 
-
-```sql 
-SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
--- 36 GB
-
-VACUUM FULL cdr.timeseries_p2024_09_01;
--- Time: 396354.673 ms (06:36.355)
-
-SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
--- 16 GB
-
-REINDEX TABLE cdr.timeseries_p2024_09_01;
--- Time: 261602.583 ms (04:21.603)
-
-SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
--- 16 GB
-```
-
----
-
-Avendo un'unica scrittura, un'unica modifica e una decina di operazioni di lettura con `groub_by`, lato prestazioni e' conveniente aggiungere un indice. 
-
-<v-click>
-
-```sql
-CREATE INDEX IF NOT EXISTS timeseries_tenant_id_idx 
-ON cdr.timeseries (tenant_id);
-
-SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
--- 16 GB
-
-CREATE INDEX IF NOT EXISTS usims_imsi_idx ON cdr.usims (imsi);
-CREATE INDEX IF NOT EXISTS usims_datetime_idx ON cdr.usims (tenant_id);
-CREATE INDEX IF NOT EXISTS usims_tenant_id_idx ON cdr.usims (datetime);
-
-SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
--- 16 GB
-```
-
-</v-click>
-
----
-
-Ricominciamo da capo. Ricontrollo la `sql select`:
-
-<v-click>
-
-```sql    
-SELECT count(*) FROM cdr.timeseries WHERE tenant_id IS NULL LIMIT 10;
--- Time: 26.399 ms
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 100;
--- Time: 26.045 ms
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 1000;
--- Time: 27.863 ms
-
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 10000;
--- Time: 25.469 ms
-```
-
-</v-click>
-
-<v-click>
-
-Molto meglio (x200) e sempre costante.
-
-</v-click>
-
----
-
-Torniamo alla funzione `populate_missing_field`.
-
-<v-click>
-
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: 5628.454 ms (00:05.628) 
-
-SELECT cdr.populate_tenant_id(20);
--- Time: 6188.688 ms (00:06.189)
-
-SELECT cdr.populate_tenant_id(50);
--- Time: 193403.525 ms (03:13.404) 
-
-SELECT cdr.populate_tenant_id(100);
--- Time: 203911.870 ms (03:23.912)
-```
-
-</v-click>
-
----
-layout: image
-image: /img/populate_tenant_id.svg
-backgroundSize: contain
----
-
----
-
-Qui ho fatto il primo (?) errore. Nei primi test ho provato solo valori multipli di 10: 10, 100, 1000.
-Probabilmente, se avessi fatto piu' punti, avrei notato una soglia critica e non l'andamento esponenziale. 
- 
-Ad ogni modo, la funzione ha sicuramente qualcosa che non funziona.
-E' evidente che c'e' uno stacco netto tra i vari valori di `max_rows` e questa cosa non mi torna, visto che il risultato delle `select` e' sempre lo stesso.
-
----
-
-## Seconda analisi: operazione principale
-
-Visto che non ho nessun record in cui ho `tenant_id is null`, ho provato a lanciare l'update senza limit, modificando io alcune righe. Ho usato un `order by id` perche', essendo l'id un `uuid`, speravo di avere dei dati uniformemente distribuiti sulle varie partizioni.
-
-<v-click>
-
-```sql
-UPDATE cdr.timeseries
-SET tenant_id = NULL
-FROM
-  (SELECT id
-   FROM cdr.timeseries
-   ORDER BY id DESC
-   LIMIT 10000) AS subquery
-WHERE cdr.timeseries.id = subquery.id;
-
--- Time: 31978.936 ms (00:31.979) 
-```
-
-</v-click>
-
-<v-click>
-
-Che comunque e' veloce.
-</v-click>
-
----
-
-A questo punto, ho provato a fare l'update di 10000 record. A livello teorico, non mi aspetto grosse differenze dalla `sql select populate_missing_field(10000);`. 
-
-<v-click>
-```sql
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = t.imsi
-                              AND u.datetime <= t.datetime
-                            ORDER BY datetime DESC
-                            LIMIT 1) , 'Unknown')
-WHERE t.tenant_id IS NULL;
--- Time: 3043.877 ms (00:03.044)
-```
-</v-click>
-
-<v-click>
-
-E invece, e' velocissima. Insomma, la `select` non e' un problema, l'`update` non e' un problema -> deve esserci qualcosa che non va nell'uso della __subquery__ con `with`.
-</v-click>
-
----
-
-### Soluzione 2.1: eliminare la subquery
-
-Se il problema e' usando il `with`, ho provato ad aggiungere il limite alla where cosi' da togliermi il problema della __subquery__. 
-
-<v-click>
-```sql
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
-                              AND u.datetime <= c.datetime
-                            ORDER BY datetime DESC
-                            LIMIT 1) , 'Unknown')
-WHERE t.tenant_id IS NULL
-LIMIT 10000;
-```
-</v-click>
-
-<v-click>
-
-Questa cosa cosa non e' possibile in PostgreSQL.
-</v-click>
-
----
-
-### Soluzione 2.2: usare una view
-
-Ho provato a creare una view con un numero limitato di records: le view sono updateble e le posso passare all'update senza bisogno di `limit`.
-
-<v-click>
-```sql
-CREATE VIEW cdr.first_null_tenants AS
-SELECT id, imsi, tenant_id, datetime
-FROM cdr.timeseries
-WHERE tenant_id is null limit 10000;
-```
-</v-click>
-
-<v-click>
-```sql
-UPDATE cdr.first_null_tenants AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
-                              AND u.datetime <= c.datetime
-                            ORDER BY datetime DESC
-                            LIMIT 1) , 'Unknown')
-WHERE t.tenant_id IS NULL;
-```
-</v-click>
-
----
-
-Ovviamente non funziona: le view sono updateble in generale, ma non se sono create con un limit, l'update sulla view fallisce.
-
-Questo e' il motivo per cui la __with__ e' necessaria.
-
-<v-click>
-```sql
-DROP VIEW cdr.first_null_tenants;
-```
-</v-click>
-
----
-
-### Soluzione 2.3: no limits
-
-In teoria, la funzione e' sufficentemente veloce da poter elaborare tutti i dati di un'unica giornata senza scadere nel timeout. 
-
-<v-click>
-```sql
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
-                              AND u.datetime <= c.datetime
-                            ORDER BY datetime DESC
-                            LIMIT 1) , 'Unknown')
-WHERE t.tenant_id IS NULL;
-```
-</v-click>
-
----
-
-Tuttavia, per come e' strutturato postgres e con questo database, questo non e' possibile. Quello che fa postgres, infatti, non e' modificare le righe una ad una, ma aggiungere le righe nuove in un file temporaneo e, a fine operazione, in caso di successo, cancellare di colpo tutte le righe e inserire quelle nuove. Questo serve a garantire l'integrita' del database. 
-
-Non potendo ipotizzare alcuna correttezza dei dati, nel caso peggiore (tutti i record con il campo mancante o una giornata con x10 di dati) lo spazio sul disco si esaurisce e muore tutto.
-
-Inoltre, manda in lock tutta la tabella e blocca tutte le altre operazioni che devono essere fatte in giornata, per cui non e' una soluzione accettabile.
-
----
-
-### TIL 1
-
-Postgres garantisce l'integrita' per i __single statement__ di default. La struttura:
-
-```sql 
-BEGIN
-...
-update 1;
-...
-update 2;
-...
-COMMIT
-```
-
-serve per garantire l'integrita' di business in caso di __multiple statement__, come nel caso di piu' update in contemporanea. 
-
----
-
-### TIL 2
-
-Postgres utilizza una funzione __autovacuum__ per pulire il db dopo alcune operazioni. Questa funzione, nel mio caso, impiegava fino ad un'ora circa. Non me ne ero accorto, e inizialmente questa cosa mi sballava parecchio i test. 
-
-Se fate test intensivi sul db, controllate con un __htop__ o direttamente da __psql__ che non ci siano operazioni di manutenzione di postgres in backgroup perche' vi falserebbero i risultati.
-
-```sql
-SELECT * FROM pg_stat_activity WHERE state = 'active';
-
-``` 
-
----
-
-## Terza analisi: condizioni ridondanti
-
-Ho finito le idee. Torniamo a guardare la funzione:
-
-```sql
-WITH c AS
-  (SELECT id,
-          imsi,
-          datetime
-   FROM cdr.timeseries
-   WHERE tenant_id IS NULL
-   LIMIT max_cdr_to_process)
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
-                              AND u.datetime <= c.datetime
-                            ORDER BY datetime DESC
-                            LIMIT 1) , 'Unknown')
-FROM c
-WHERE t.id = c.id;
-```
-
----
-
-### Soluzione 3: condizione ridondante
-
-E se la facessi cosi' (ma non so perche')?
-
-````md magic-move {lines: true}
-```sql
-WITH c AS
-  (SELECT id,
-          imsi,
-          datetime
-   FROM cdr.timeseries
-   WHERE tenant_id IS NULL
-   LIMIT max_cdr_to_process)
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
-                              AND u.datetime <= c.datetime
-                            ORDER BY datetime DESC
-                            LIMIT 1) , 'Unknown')
-FROM c
-WHERE c.id = t.id;
-```
-
-```sql{17-18}
-WITH c AS
-  (SELECT id,
-          imsi,
-          datetime
-   FROM cdr.timeseries
-   WHERE tenant_id IS NULL
-   LIMIT max_cdr_to_process)
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
-                              AND u.datetime <= c.datetime
-                            ORDER BY datetime DESC
-                            LIMIT 1) , 'Unknown')
-FROM c
-WHERE c.id = t.id
-  AND tenant_id IS NULL;
-```
-````
-
----
-
-Impostiamo il campo come null su tutte le righe:
-
-```sql    
-UPDATE cdr.timeseries SET tenant_id = null;
--- Time: 5160102.544 ms (01:26:00.103)
-```
-
----
-
-Torniamo alla funzione `populate_missing_field`. 
-
-````md magic-move
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: 6123.360 ms (00:06.123)
-```
-
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: 6123.360 ms (00:06.123)
-
-SELECT cdr.populate_tenant_id(20);
--- Time: 6392.647 ms (00:06.393)
-```
-
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: 6123.360 ms (00:06.123)
-
-SELECT cdr.populate_tenant_id(20);
--- Time: 6392.647 ms (00:06.393)
-
-SELECT cdr.populate_tenant_id(50);
--- Time: 5869.910 ms (00:05.870)
-```
-
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: 6123.360 ms (00:06.123)
-
-SELECT cdr.populate_tenant_id(20);
--- Time: 6392.647 ms (00:06.393)
-
-SELECT cdr.populate_tenant_id(50);
--- Time: 5869.910 ms (00:05.870)
-
-SELECT cdr.populate_tenant_id(100);
--- Time: 5929.555 ms (00:05.930)
-```
-
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: 6123.360 ms (00:06.123)
-
-SELECT cdr.populate_tenant_id(20);
--- Time: 6392.647 ms (00:06.393)
-
-SELECT cdr.populate_tenant_id(50);
--- Time: 5869.910 ms (00:05.870)
-
-SELECT cdr.populate_tenant_id(100);
--- Time: 5929.555 ms (00:05.930)
-
-SELECT cdr.populate_tenant_id(1000);
--- Time: 7175.841 ms (00:07.176)
-```
-
-```sql    
-SELECT cdr.populate_tenant_id(10);
--- Time: 6123.360 ms (00:06.123)
-
-SELECT cdr.populate_tenant_id(20);
--- Time: 6392.647 ms (00:06.393)
-
-SELECT cdr.populate_tenant_id(50);
--- Time: 5869.910 ms (00:05.870)
-
-SELECT cdr.populate_tenant_id(100);
--- Time: 5929.555 ms (00:05.930)
-
-SELECT cdr.populate_tenant_id(1000);
--- Time: 7175.841 ms (00:07.176)
-
-SELECT cdr.populate_tenant_id(10000);
--- Time: 242200.066 ms (04:02.200)
-```
-````
-
----
-layout: image
-image: /img/populate_tenant_id_double_condition.svg
-backgroundSize: contain
----
-
----
-
-## Quarta Analisi: explain analyze
-
-
-File di circa 70k righe, generati all'interno di un container docker accessibile solo via ssh. 
+File di circa 70k righe, generati all'interno di un container docker dentro una macchina virtuale accessibile solo via ssh. 
 
 Ho provato con grep, ma l'unica cosa che ho notato e' che a volte __Planning Time__ ed __Execution Time__ sono simili, a volte sono completamente fuori scala.
+</v-click>
 
 <v-click>
 
@@ -686,13 +150,13 @@ docker compose cp /path/to/your/file.sql .
 
 ---
 
-### Funzione originale
+## Funzione originale
 
 <br>
 
 <v-click>
 
-#### 10
+### 10
 
 ```sql
 Planning Time: 2885.200 ms
@@ -704,7 +168,7 @@ Execution Time: 2973.032 ms
 
 <v-click>
 
-#### 100
+### 100
 
 ```sql
 Planning Time: 2334.413 ms
@@ -718,13 +182,13 @@ Execution Time: 216691.628 ms
 
 ---
 
-### Nuova funzione (condizione ridondante)
+## Nuova funzione (condizione ridondante)
 
 <br>
 
 <v-click>
 
-#### 10
+### 10
 ```
 Planning Time: 2359.241 ms
 Execution Time: 2918.323 ms
@@ -733,7 +197,7 @@ Execution Time: 2918.323 ms
 
 <v-click>
 
-#### 100
+### 100
 ```
 Planning Time: 2243.924 ms
 Execution Time: 3035.774 ms
@@ -742,7 +206,7 @@ Execution Time: 3035.774 ms
 
 <v-click>
 
-#### 1000
+### 1000
 ```
 Planning Time: 2273.605 ms
 Execution Time: 4264.941 ms
@@ -751,7 +215,7 @@ Execution Time: 4264.941 ms
 
 <v-click>
 
-#### 10000
+### 10000
 ```
 Planning Time: 2301.638 ms
 JIT:
@@ -764,14 +228,11 @@ Execution Time: 225298.909 ms
 
 ---
 
-<v-click>
-
 Sembra che, quando entra in funzione JIT (Just-in-Time Compilation), peggiori le cose invece di migliorarle.
-</v-click>
 
 ---
 
-### Soluzione 4: disabilitare JIT
+## Soluzione 4: disabilitare JIT
 
 Impostiamo la funzione in maniera che disabiliti e poi ripristini __jit__
 
@@ -805,7 +266,7 @@ Siamo passati da una funzione che va in timeout ogni ora, ad una funzione di 14 
 
 ---
 
-## Quesiti in sospeso
+# Quesiti in sospeso
 
 <br>
 
@@ -831,7 +292,7 @@ SHOW jit_above_cost;
 
 ---
 
-### Funzione originale
+## Funzione originale
 
 ```sql
 -- 10
@@ -861,11 +322,11 @@ L'hash join viene eseguito 184 volte in entrambe le query. La differenza di cost
 
 ---
 
-### Nuova funzione
+## Nuova funzione
 
 <br>
 
-#### Total cost
+### Total cost
 
 <br>
 
@@ -891,7 +352,7 @@ backgroundSize: contain
 
 ---
 
-#### Hash join
+### Hash join
 
 ```sql{all|2,7,12,17|all}
 -- 10
@@ -922,7 +383,7 @@ Abbiamo 184 __Hash Join__, ma per ogni Hash Join scannerizza tutte le partizioni
 
 ---
 
-### Soluzione 5: limitare le partizioni
+## Soluzione 5: limitare le partizioni
 
 Limitare il numero di partizioni su cui viene eseguita la query.
 
@@ -939,7 +400,7 @@ Questa non funziona perche' il limite e' sui valori univoci. Serve anche qui una
 ---
 
 
-```sql{all|9-26}
+```sql{all|2-6|9-26}
 FOR distinct_value IN
 SELECT DISTINCT tableoid::regclass
 FROM
@@ -981,7 +442,7 @@ code {
 
 ---
 
-### Explain analyze singola partizione
+## Explain analyze singola partizione
 
 ```sql
 EXPLAIN ANALYZE WITH c AS (
@@ -1110,7 +571,7 @@ Ultima curiosita': provo a ritogliere la condizione inutile.
 
 ---
 
-### Con condizione
+## Con condizione
 
 ```sql
 EXPLAIN ANALYZE WITH c AS (
@@ -1159,7 +620,7 @@ Execution Time: 10675.000 ms
 
 ---
 
-### Senza condizione 
+## Senza condizione 
 
 ```sql
 EXPLAIN ANALYZE WITH c AS (
@@ -1209,9 +670,9 @@ E' comunque leggermente piu' lenta, ma non di molto.
 
 --- 
 
-## Ultimo check
+# Ultimo check
 
-All'inizio, il problema era con la funzione a regime, quindi senza alcuna operazione da fare. Ripristino quindi il database con tutti i campi __tenant_id__ popolati.
+All'inizio, il problema era con la funzione a regime, quindi senza alcuna operazione da fare. Ripristino quindi il database con tutti i campi __tenant_id__ popolati
 
 <v-click>
 
@@ -1236,12 +697,17 @@ SELECT cdr.populate_tenant_id(10000);
 
 <v-click>
 
-Come aspettato fin dall'inizio, la funzione senza alcun record da modificare e' estremamente veloce ed e' comparabile al tempo della sola `select`.
+Come aspettato fin dall'inizio, la funzione senza alcun record da modificare e' estremamente veloce ed e' comparabile al tempo della sola `select`
+</v-click>
+
+<v-click>
+
+Da __19 minuti__ (un'ora in produzione) a __34 millisecondi__
 </v-click>
 
 ---
 
-## Conclusioni
+# Conclusioni
 
 <v-clicks>
 
@@ -1249,10 +715,12 @@ Come aspettato fin dall'inizio, la funzione senza alcun record da modificare e' 
 - In alcuni casi, delle condizioni ridondanti possono diminuire il carico sul database
 - JIT potrebbe essere controproducente nel caso di tabelle molto partizionate
 - In generale, se possibile, sarebbe meglio non lavorare mai su tabelle partizionate ma sempre sulla singola partizione
+- Una buona conoscenza/dialogo del dominio e del business porta "spesso" a risultati migliori
 </v-clicks>
 
 ---
 layout: section
+hideInToc: true
 ---
 
-## Grazie per l'attenzione
+# Grazie per l'attenzione
