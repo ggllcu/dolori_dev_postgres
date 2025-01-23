@@ -1,5 +1,5 @@
 
-### Soluzione 2.2: usare una view
+## Soluzione 2.2: usare una view
 
 Ho provato a creare una view con un numero limitato di records: le view sono updateble e le posso passare all'update senza bisogno di `limit`.
 

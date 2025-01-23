@@ -117,8 +117,11 @@ src: ./pages/solution_3.md
 ---
 
 ---
+layout: section
+---
 
 # Quarto step: 
+
 
 ## Uso di `explain analyze`
 

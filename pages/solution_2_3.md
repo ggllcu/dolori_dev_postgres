@@ -1,5 +1,5 @@
 
-### Soluzione 2.3: no limits
+## Soluzione 2.3: no limits
 
 In teoria, la funzione e' sufficentemente veloce da poter elaborare tutti i dati di un'unica giornata senza scadere nel timeout. 
 

@@ -1,5 +1,5 @@
 
-### Analisi dell'`Update`
+## Analisi dell'`Update`
 
 Visto che non ho nessun record in cui ho `tenant_id is null`, ho provato a lanciare l'update senza limit, modificando io alcune righe. Ho usato un `order by id` perche', essendo l'id un `uuid`, speravo di avere dei dati uniformemente distribuiti sulle varie partizioni.
 

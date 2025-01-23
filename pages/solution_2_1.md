@@ -1,5 +1,5 @@
 
-### Soluzione 2.1: eliminare la subquery
+## Soluzione 2.1: eliminare la subquery
 
 Se il problema e' usando il `with`, ho provato ad aggiungere il limite alla where cosi' da togliermi il problema della __subquery__. 
 

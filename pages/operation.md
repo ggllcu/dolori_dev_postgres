@@ -1,8 +1,8 @@
-### Operazione
+## Operazione
 
 <br>
 
-#### Tabella principale main_table
+### Tabella principale main_table
 
 |    |     |     |     |
 |--- | --- | --- | --- |
@@ -13,7 +13,7 @@
 
 <v-click>
 
-#### Tabella ausiliaria helper_table
+### Tabella ausiliaria helper_table
 
 |    |     |
 |--- | --- |
@@ -24,7 +24,7 @@
 
 ---
 
-#### Stored procedure
+### Stored procedure
 
 ```sql{all|2-7|10-15|8-9,16-17}
 WITH c AS

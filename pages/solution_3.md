@@ -1,5 +1,5 @@
 
-### Soluzione 3: condizione ridondante
+## Soluzione 3: condizione ridondante
 
 E se la facessi cosi' (ma non so perche')?
 

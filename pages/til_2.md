@@ -1,5 +1,5 @@
 
-### TIL 2
+## TIL 2
 
 Postgres utilizza una funzione __autovacuum__ per pulire il db dopo alcune operazioni. Questa funzione, nel mio caso, impiegava fino ad un'ora circa. Non me ne ero accorto, e inizialmente questa cosa mi sballava parecchio i test. 
 

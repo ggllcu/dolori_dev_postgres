@@ -1,4 +1,4 @@
-### Soluzione 1: ottimizzazione e indici
+## Soluzione 1: ottimizzazione e indici
 
 Cominciamo con le basi e poi torniamo all'analisi. Facciamo manutenzione, creiamo tutti gli indici necessari e stimiamone i costi. 
 

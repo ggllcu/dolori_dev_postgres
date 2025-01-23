@@ -1,4 +1,4 @@
-### Database
+## Database
 
 - una tabella con 180 partizioni, una per ogni giorno
 - ~ 40 milioni di record per giorno inseriti giornalmente
