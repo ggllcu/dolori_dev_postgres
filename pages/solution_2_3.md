@@ -19,7 +19,7 @@ WHERE t.missing_field IS NULL;
 
 ---
 
-Tuttavia, per come e' strutturato postgres e con questo database, questo non e' possibile. Quello che fa postgres, infatti, non e' modificare le righe una ad una, ma aggiungere le righe nuove in un file temporaneo e, a fine operazione, in caso di successo, cancellare di colpo tutte le righe e inserire quelle nuove. Questo serve a garantire l'integrita' del database.
+Tuttavia, per come e' strutturato PostgreSQL e con questo database, questo non e' possibile. Quello che fa PostgreSQL, infatti, non e' modificare le righe una ad una, ma aggiungere le righe nuove in un file temporaneo e, a fine operazione, in caso di successo, cancellare di colpo tutte le righe e inserire quelle nuove. Questo serve a garantire l'integrita' del database.
 
 <v-click>
 

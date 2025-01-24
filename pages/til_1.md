@@ -1,7 +1,7 @@
 
 ## TIL 1
 
-Postgres garantisce l'integrita' per i __single statement__ di default. La struttura:
+PostgreSQL garantisce l'integrita' per i __single statement__ di default. La struttura:
 
 ```sql 
 BEGIN
