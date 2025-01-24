@@ -5,24 +5,24 @@ Ho provato a creare una view con un numero limitato di records: le view sono upd
 
 <v-click>
 ```sql
-CREATE VIEW cdr.first_null_tenants AS
-SELECT id, imsi, tenant_id, datetime
-FROM cdr.timeseries
-WHERE tenant_id is null limit 10000;
+CREATE VIEW first_null_tenants AS
+SELECT id, unique_identifier, missing_field, datetime
+FROM main_table
+WHERE missing_field is null limit 10000;
 ```
 </v-click>
 
 <v-click>
 ```sql
-UPDATE cdr.first_null_tenants AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
+UPDATE first_null_tenants AS t
+SET missing_field = coalesce(
+                           (SELECT missing_field
+                            FROM helper_table AS u
+                            WHERE u.unique_identifier = c.unique_identifier
                               AND u.datetime <= c.datetime
                             ORDER BY datetime DESC
                             LIMIT 1) , 'Unknown')
-WHERE t.tenant_id IS NULL;
+WHERE t.missing_field IS NULL;
 ```
 </v-click>
 
@@ -34,6 +34,6 @@ Questo e' il motivo per cui la __with__ e' necessaria.
 
 <v-click>
 ```sql
-DROP VIEW cdr.first_null_tenants;
+DROP VIEW first_null_tenants;
 ```
 </v-click>

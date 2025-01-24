@@ -1,19 +1,19 @@
 
 ## Analisi dell'`Update`
 
-Visto che non ho nessun record in cui ho `tenant_id is null`, ho provato a lanciare l'update senza limit, modificando io alcune righe. Ho usato un `order by id` perche', essendo l'id un `uuid`, speravo di avere dei dati uniformemente distribuiti sulle varie partizioni.
+Visto che non ho nessun record in cui ho `missing_field is null`, ho provato a lanciare l'update senza limit, modificando io alcune righe. Ho usato un `order by id` perche', essendo l'id un `uuid`, speravo di avere dei dati uniformemente distribuiti sulle varie partizioni.
 
 <v-click>
 
 ```sql
-UPDATE cdr.timeseries
-SET tenant_id = NULL
+UPDATE main_table
+SET missing_field = NULL
 FROM
   (SELECT id
-   FROM cdr.timeseries
+   FROM main_table
    ORDER BY id DESC
    LIMIT 10000) AS subquery
-WHERE cdr.timeseries.id = subquery.id;
+WHERE main_table.id = subquery.id;
 
 -- Time: 31978.936 ms (00:31.979) 
 ```
@@ -27,19 +27,19 @@ Che comunque e' veloce.
 
 ---
 
-A questo punto, ho provato a fare l'update di 10000 record. A livello teorico, non mi aspetto grosse differenze dalla `sql select populate_missing_field(10000);`. 
+A questo punto, ho provato a fare l'update di 10000 record. A livello teorico, non mi aspetto grosse differenze dalla `select populate_missing_field(10000);`. 
 
 <v-click>
 ```sql
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = t.imsi
+UPDATE main_table AS t
+SET missing_field = coalesce(
+                           (SELECT missing_field
+                            FROM helper_table AS u
+                            WHERE u.unique_identifier = t.unique_identifier
                               AND u.datetime <= t.datetime
                             ORDER BY datetime DESC
                             LIMIT 1) , 'Unknown')
-WHERE t.tenant_id IS NULL;
+WHERE t.missing_field IS NULL;
 -- Time: 3043.877 ms (00:03.044)
 ```
 </v-click>

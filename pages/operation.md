@@ -15,10 +15,10 @@
 
 ### Tabella ausiliaria helper_table
 
-|    |     |
-|--- | --- |
-|unique_identifier | missing_field |
-| 123456789 | abc |
+|   |   |   |
+|---|---|---|
+|unique_identifier | missing_field | datetime |
+| 123456789 | abc | 2025-01-23 |
 
 </v-click>
 
@@ -29,16 +29,16 @@
 ```sql{all|2-7|10-15|8-9,16-17}
 WITH c AS
   (SELECT id,
-          imsi,
+          unique_identifier,
           datetime
-   FROM cdr.timeseries
-   WHERE tenant_id IS NULL
+   FROM main_table
+   WHERE missing_field IS NULL
    LIMIT max_cdr_to_process)
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
+UPDATE main_table AS t
+SET missing_field = coalesce(
+                           (SELECT missing_field
+                            FROM helper_table AS u
+                            WHERE u.unique_identifier = c.unique_identifier
                               AND u.datetime <= c.datetime
                             ORDER BY datetime DESC
                             LIMIT 1) , 'Unknown')

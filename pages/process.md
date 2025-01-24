@@ -3,7 +3,7 @@
 - Job su Oban ogni 5 minuti che lancia la funzione definita su postgres 
 
   ```sql 
-  select populate_missing_field(max_rows)
+  select populate_missing_field(max_cdr_to_process)
   ```
 <v-click>
 

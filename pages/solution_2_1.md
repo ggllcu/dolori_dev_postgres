@@ -5,15 +5,15 @@ Se il problema e' usando il `with`, ho provato ad aggiungere il limite alla wher
 
 <v-click>
 ```sql
-UPDATE cdr.timeseries AS t
-SET tenant_id = coalesce(
-                           (SELECT tenant_id
-                            FROM cdr.usims AS u
-                            WHERE u.imsi = c.imsi
+UPDATE main_table AS t
+SET missing_field = coalesce(
+                           (SELECT missing_field
+                            FROM helper_table AS u
+                            WHERE u.unique_identifier = c.unique_identifier
                               AND u.datetime <= c.datetime
                             ORDER BY datetime DESC
                             LIMIT 1) , 'Unknown')
-WHERE t.tenant_id IS NULL
+WHERE t.missing_field IS NULL
 LIMIT 10000;
 ```
 </v-click>

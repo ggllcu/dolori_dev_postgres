@@ -1,5 +1,5 @@
 set terminal svg enhanced font "Helvetica,14"
-set output '../public/img/populate_tenant_id.svg'
+set output '../public/img/populate_missing_field.svg'
 
 unset logscale
 set grid lw 1 linetype 1 lc rgb "gray"

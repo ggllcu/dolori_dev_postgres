@@ -6,13 +6,13 @@ Cominciamo con le basi e poi torniamo all'analisi. Facciamo manutenzione, creiam
 SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
 -- 36 GB
 
-VACUUM FULL cdr.timeseries_p2024_09_01;
+VACUUM FULL main_table_p2024_09_01;
 -- Time: 396354.673 ms (06:36.355)
 
 SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
 -- 16 GB
 
-REINDEX TABLE cdr.timeseries_p2024_09_01;
+REINDEX TABLE main_table_p2024_09_01;
 -- Time: 261602.583 ms (04:21.603)
 
 SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
@@ -21,26 +21,30 @@ SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
 
 ---
 
-Le contro indicazioni degli indici sono operazioni piu' lente in scrittura e modifica, e maggior spazio occupato sul disco. Sono piu' efficaci in caso di cardinalita' bassa.
+Le contro indicazioni degli indici sono operazioni piu' lente in scrittura e modifica, e maggior spazio occupato sul disco
 
 <v-click>
 
-Avendo un'unica scrittura, un'unica modifica e una decina di operazioni di lettura con `groub_by`, lato prestazioni e' conveniente aggiungere tutti gli indici necessari. 
+Sono piu' efficaci in caso di cardinalita' bassa
+</v-click>
 
+<v-click>
+
+Avendo un'unica scrittura, un'unica modifica e una decina di operazioni di lettura con `groub_by`, lato prestazioni e' conveniente aggiungere tutti gli indici necessari
 </v-click>
 
 <v-click>
 
 ```sql
-CREATE INDEX IF NOT EXISTS timeseries_tenant_id_idx 
-ON cdr.timeseries (tenant_id);
+CREATE INDEX IF NOT EXISTS timeseries_missing_field_idx 
+ON main_table (missing_field);
 
 SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
 -- 16 GB
 
-CREATE INDEX IF NOT EXISTS usims_imsi_idx ON cdr.usims (imsi);
-CREATE INDEX IF NOT EXISTS usims_datetime_idx ON cdr.usims (tenant_id);
-CREATE INDEX IF NOT EXISTS usims_tenant_id_idx ON cdr.usims (datetime);
+CREATE INDEX IF NOT EXISTS usims_unique_identifier_idx ON helper_table (unique_identifier);
+CREATE INDEX IF NOT EXISTS usims_datetime_idx ON helper_table (missing_field);
+CREATE INDEX IF NOT EXISTS usims_missing_field_idx ON helper_table (datetime);
 
 SELECT pg_size_pretty(pg_database_size('cdr')) AS database_size;
 -- 16 GB
@@ -55,16 +59,16 @@ Ricominciamo da capo. Ricontrollo la `sql select`:
 <v-click>
 
 ```sql    
-SELECT count(*) FROM cdr.timeseries WHERE tenant_id IS NULL LIMIT 10;
+SELECT count(*) FROM main_table WHERE missing_field IS NULL LIMIT 10;
 -- Time: 26.399 ms
 
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 100;
+SELECT count(*) FROM main_table ORDER BY id DESC LIMIT 100;
 -- Time: 26.045 ms
 
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 1000;
+SELECT count(*) FROM main_table ORDER BY id DESC LIMIT 1000;
 -- Time: 27.863 ms
 
-SELECT count(*) FROM cdr.timeseries ORDER BY id DESC LIMIT 10000;
+SELECT count(*) FROM main_table ORDER BY id DESC LIMIT 10000;
 -- Time: 25.469 ms
 ```
 
@@ -83,16 +87,16 @@ Torniamo alla funzione `populate_missing_field`.
 <v-click>
 
 ```sql    
-SELECT cdr.populate_tenant_id(10);
+SELECT cdr.populate_missing_field(10);
 -- Time: 5628.454 ms (00:05.628) 
 
-SELECT cdr.populate_tenant_id(20);
+SELECT cdr.populate_missing_field(20);
 -- Time: 6188.688 ms (00:06.189)
 
-SELECT cdr.populate_tenant_id(50);
+SELECT cdr.populate_missing_field(50);
 -- Time: 193403.525 ms (03:13.404) 
 
-SELECT cdr.populate_tenant_id(100);
+SELECT cdr.populate_missing_field(100);
 -- Time: 203911.870 ms (03:23.912)
 ```
 
@@ -100,7 +104,7 @@ SELECT cdr.populate_tenant_id(100);
 
 ---
 layout: image
-image: /img/populate_tenant_id.svg
+image: /img/populate_missing_field.svg
 backgroundSize: contain
 ---
 
