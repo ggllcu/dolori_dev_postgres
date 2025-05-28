@@ -5,7 +5,7 @@ Ho provato a creare una view con un numero limitato di records: le view sono upd
 
 <v-click>
 ```sql
-CREATE VIEW first_null_tenants AS
+CREATE VIEW first_null_rows AS
 SELECT id, unique_identifier, missing_field, datetime
 FROM main_table
 WHERE missing_field is null limit 10000;
@@ -14,7 +14,7 @@ WHERE missing_field is null limit 10000;
 
 <v-click>
 ```sql
-UPDATE first_null_tenants AS t
+UPDATE first_null_rows AS t
 SET missing_field = coalesce(
                            (SELECT missing_field
                             FROM helper_table AS u
@@ -34,6 +34,6 @@ Questo e' il motivo per cui la __with__ e' necessaria.
 
 <v-click>
 ```sql
-DROP VIEW first_null_tenants;
+DROP VIEW first_null_rows;
 ```
 </v-click>

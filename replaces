@@ -10,5 +10,5 @@ unique_identifier
 tenant_id
 missing_field
 
-max_cdr_to_process
+max_rows
 max_rows

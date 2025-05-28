@@ -10,7 +10,7 @@ WITH c AS
           datetime
    FROM main_table
    WHERE missing_field IS NULL
-   LIMIT max_cdr_to_process)
+   LIMIT max_rows)
 UPDATE main_table AS t
 SET missing_field = coalesce(
                            (SELECT missing_field

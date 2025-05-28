@@ -3,6 +3,7 @@
 
 <v-clicks>
 
+- Coders 51
 - Non sono un esperto di PostgreSQL
 - "Solo" dev su un cliente "complesso"
 - Due settimane di tempo per sbloccare il database

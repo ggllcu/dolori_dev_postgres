@@ -22,7 +22,7 @@ SELECT DISTINCT tableoid::regclass
 FROM
   (SELECT tableoid::regclass
    FROM main_table
-   LIMIT max_cdr_to_process) subquery 
+   LIMIT max_rows) subquery 
 LOOP 
   EXECUTE format($sql$
       WITH c AS (
@@ -44,7 +44,7 @@ LOOP
       FROM c
       WHERE c.id = t.id AND missing_field IS NULL
   $sql$, distinct_value, distinct_value) 
-  USING max_cdr_to_process;
+  USING max_rows;
 
 END LOOP;
 ```
